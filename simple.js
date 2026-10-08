@@ -20,7 +20,7 @@ function home(){
     const m=TYPES[t],r=latest(t);
     h+='<div class="card meter"><span class="icon">'+m[0]+'</span><div><b>'+m[1]+'</b><div class="muted">'+(r?"Poslední odečet: "+r.date:"bez odečtu")+'</div></div><span class="value">'+(r?r.value:"—")+" "+m[2]+"</span></div>";
   });
-  h+='<div class="card"><b>Nový odečet</b><p class="muted">Přidej aktuální stav měřidla.</p><button class="btn" id="newReading">➕ Přidat odečet</button></div>';
+  h+='<div class="card"><b>Nový odečet</b><p class="muted">Vyfoť měřidlo nebo vyber fotografie z galerie.</p><button class="btn" id="newReading">➕ Přidat odečet</button></div>';
   a.innerHTML=h;
   document.getElementById("newReading").onclick=add;
 }
@@ -28,9 +28,32 @@ function add(){
   const a=document.getElementById("app");
   let h="<h2>Nový odečet</h2><div class='card'><label>Měřidlo</label><select id='type'>";
   data.enabled.forEach(t=>h+="<option value='"+t+"'>"+TYPES[t][0]+" "+TYPES[t][1]+"</option>");
-  h+="</select><label>Datum</label><input id='date' type='date'><label>Stav</label><input id='value' inputmode='decimal' placeholder='např. 12345,6'><label>Fotografie</label><input id='photo' type='file' accept='image/*' capture='environment'><div class='muted'>Fotografie se do zálohy neukládá.</div><button class='btn' id='saveReading'>💾 Uložit</button></div>";
+  h+="</select><label>Datum</label><input id='date' type='date'><label>Stav</label><input id='value' inputmode='decimal' placeholder='např. 12345,6'>";
+  h+="<label>Fotografie</label><div class='row photo-buttons'><button type='button' class='btn' id='cameraBtn'>📷 Fotoaparát</button><button type='button' class='btn secondary' id='galleryBtn'>🖼️ Galerie</button></div>";
+  h+="<input id='cameraInput' type='file' accept='image/*' capture='environment' hidden><input id='galleryInput' type='file' accept='image/*' multiple hidden>";
+  h+="<div id='photoInfo' class='muted'>Vyber fotografii fotoaparátem nebo jednu či více fotografií z galerie.</div>";
+  h+="<button class='btn' id='saveReading'>💾 Uložit</button></div>";
   a.innerHTML=h;
   document.getElementById("date").value=new Date().toISOString().slice(0,10);
+
+  const cameraInput=document.getElementById("cameraInput");
+  const galleryInput=document.getElementById("galleryInput");
+  const info=document.getElementById("photoInfo");
+
+  document.getElementById("cameraBtn").onclick=function(){cameraInput.click();};
+  document.getElementById("galleryBtn").onclick=function(){galleryInput.click();};
+
+  cameraInput.onchange=function(){
+    if(this.files&&this.files.length){
+      info.textContent="📷 Fotoaparát: "+this.files[0].name;
+    }
+  };
+  galleryInput.onchange=function(){
+    if(this.files&&this.files.length){
+      info.textContent="🖼️ Galerie: vybráno "+this.files.length+" fotografií";
+    }
+  };
+
   document.getElementById("saveReading").onclick=function(){
     const v=document.getElementById("value").value.replace(",",".");
     if(!v||isNaN(v)){alert("Zadej platnou hodnotu.");return;}
