@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs>
+ <linearGradient id="y" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff31a"/><stop offset="1" stop-color="#ffc400"/></linearGradient>
+ <linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2196f3"/><stop offset="1" stop-color="#0756b5"/></linearGradient>
+ <linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff5a4f"/><stop offset="1" stop-color="#c51f1a"/></linearGradient>
+ <filter id="s"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-opacity=".25"/></filter>
+</defs>
+<rect width="512" height="512" rx="92" fill="url(#y)"/>
+<g filter="url(#s)">
+ <rect x="20" y="218" width="472" height="76" rx="32" fill="#1267c7"/>
+ <rect x="20" y="218" width="130" height="76" rx="32" fill="url(#b)"/>
+ <rect x="362" y="218" width="130" height="76" rx="32" fill="url(#r)"/>
+ <circle cx="256" cy="256" r="164" fill="url(#b)" stroke="#064a9f" stroke-width="8"/>
+ <circle cx="256" cy="256" r="137" fill="#f8fafc" stroke="#dce5ef" stroke-width="6"/>
+ <rect x="154" y="211" width="204" height="64" rx="10" fill="#152033"/>
+ <g fill="#fff" font-family="Arial,sans-serif" font-size="35" font-weight="700" text-anchor="middle">
+  <text x="188" y="254">0</text><text x="222" y="254">1</text><text x="256" y="254">2</text><text x="290" y="254">3</text><text x="324" y="254">4</text>
+ </g>
+ <text x="256" y="302" fill="#172033" font-family="Arial,sans-serif" font-size="27" font-weight="700" text-anchor="middle">m³</text>
+ <path d="M256 326 C234 352 229 364 229 377 A27 27 0 0 0 283 377 C283 364 278 352 256 326Z" fill="#1695ee"/>
+</g>
+</svg>
