@@ -210,10 +210,15 @@ function importExcelFile(file){
  reader.readAsArrayBuffer(file);
 }
 function settings(){
- const a=document.getElementById("app");let h="<h2>Nastavení</h2><div class='card'><b>Zobrazená měřidla</b>";
+ const a=document.getElementById("app");let h="<h2>Nastavení</h2><div class='card'><b>Barva aplikace</b><p class='muted'>Vyber barvu horní lišty, tlačítek a grafů.</p><div class='accent-options'>";
+ const accents={blue:["Modrá","#1565c0"],yellow:["Žlutá","#d6a400"],red:["Červená","#d32f2f"],orange:["Oranžová","#ef6c00"],pastelblue:["Pastelově modrá","#80c4e8"],green:["Zelená","#2e8b57"]};
+ const currentAccent=readAccent();
+ Object.keys(accents).forEach(k=>h+="<button type='button' class='accent-choice' data-accent-choice='"+k+"' aria-pressed='"+(k===currentAccent?"true":"false")+"' title='"+accents[k][0]+"' style='--swatch:"+accents[k][1]+"'><span class='accent-dot'></span><span>"+accents[k][0]+"</span>"+(k===currentAccent?" ✓":"")+"</button>");
+ h+="</div></div><div class='card'><b>Zobrazená měřidla</b>";
  Object.keys(TYPES).forEach(t=>h+="<label><input type='checkbox' data-meter='"+t+"' "+(data.enabled.indexOf(t)>=0?"checked":"")+"> "+TYPES[t][0]+" "+TYPES[t][1]+"</label>");
  h+="</div><div class='card'><b>Záloha a obnova</b><p class='muted'>Záloha obsahuje odečty a nastavení měřidel, nikoli fotografie. Import nahradí stávající data.</p><button class='btn' id='exportJSON'>⬇️ Export do JSON</button><button class='btn secondary' id='importJSON'>⬆️ Import z JSON</button><input id='jsonFile' type='file' accept='.json,application/json' hidden><hr><button class='btn' id='exportExcel'>📊 Export do Excelu (.xlsx)</button><button class='btn secondary' id='importExcel'>📥 Import z Excelu (.xlsx)</button><input id='excelFile' type='file' accept='.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel' hidden></div>";
  a.innerHTML=h;
+ a.querySelectorAll("[data-accent-choice]").forEach(b=>b.onclick=()=>{applyAccent(b.dataset.accentChoice);settings();});
  a.querySelectorAll("[data-meter]").forEach(c=>c.onchange=function(){data.enabled=Object.keys(TYPES).filter(t=>a.querySelector("[data-meter='"+t+"']").checked);if(!data.enabled.length){this.checked=true;data.enabled=[this.dataset.meter];}save();settings();});
  document.getElementById("exportJSON").onclick=exportJSON;
  document.getElementById("importJSON").onclick=()=>document.getElementById("jsonFile").click();
@@ -222,10 +227,13 @@ function settings(){
  document.getElementById("importExcel").onclick=()=>document.getElementById("excelFile").click();
  document.getElementById("excelFile").onchange=e=>importExcelFile(e.target.files[0]);
 }
+const ACCENTS={blue:"#1565c0",yellow:"#d6a400",red:"#d32f2f",orange:"#ef6c00",pastelblue:"#80c4e8",green:"#2e8b57"};
+function readAccent(){try{const v=localStorage.getItem("mojeMeridlaAccent");return ACCENTS[v]?v:"blue";}catch(e){return "blue";}}
+function applyAccent(key){const chosen=ACCENTS[key]?key:"blue";document.body.dataset.accent=chosen;try{localStorage.setItem("mojeMeridlaAccent",chosen);}catch(e){}const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=ACCENTS[chosen];}
 function applyTheme(theme){
  const chosen=theme==="dark"?"dark":"light";document.body.dataset.theme=chosen;
  const b=document.getElementById("themeToggle");if(b){b.textContent=chosen==="dark"?"☀️":"🌙";b.setAttribute("aria-label",chosen==="dark"?"Zapnout světlý režim":"Zapnout tmavý režim");b.title=chosen==="dark"?"Zapnout světlý režim":"Zapnout tmavý režim";}
- const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=chosen==="dark"?"#101d30":"#1565c0";
+ applyAccent(readAccent());
 }
 function toggleTheme(){const next=document.body.dataset.theme==="dark"?"light":"dark";try{localStorage.setItem("mojeMeridlaTheme",next);}catch(e){}applyTheme(next);}
-document.addEventListener("DOMContentLoaded",function(){load();let theme="light";try{theme=localStorage.getItem("mojeMeridlaTheme")||"light";}catch(e){}applyTheme(theme);document.getElementById("themeToggle").onclick=toggleTheme;document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){if(b.dataset.page==="home")home();if(b.dataset.page==="add")add();if(b.dataset.page==="history")history();if(b.dataset.page==="stats")stats();if(b.dataset.page==="settings")settings();};});document.getElementById("settings").onclick=settings;home();});
+document.addEventListener("DOMContentLoaded",function(){load();let theme="light";try{theme=localStorage.getItem("mojeMeridlaTheme")||"light";}catch(e){}applyTheme(theme);applyAccent(readAccent());document.getElementById("themeToggle").onclick=toggleTheme;document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){if(b.dataset.page==="home")home();if(b.dataset.page==="add")add();if(b.dataset.page==="history")history();if(b.dataset.page==="stats")stats();if(b.dataset.page==="settings")settings();};});document.getElementById("settings").onclick=settings;home();});
