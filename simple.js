@@ -187,7 +187,7 @@ function importExcelFile(file){
   const sheet=wb.Sheets["Odečty"]||wb.Sheets[wb.SheetNames[0]];
   if(!sheet)throw new Error("Chybí list s odečty.");
   const rows=XLSX.utils.sheet_to_json(sheet,{defval:""});
-  const key=x=>String(x??"").trim().toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
+  const key=x=>String(x??"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   const parsed=rows.map((row,i)=>{
    const keys=Object.keys(row),get=(...names)=>{const k=keys.find(k=>names.includes(key(k)));return k===undefined?undefined:row[k];};
    let type=get("typ","type","klic meridla","kod meridla");
@@ -198,8 +198,8 @@ function importExcelFile(file){
    if(date instanceof Date&&!isNaN(date))date=date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
    else if(typeof date==="number"&&date>20000&&date<80000){const d=XLSX.SSF.parse_date_code(date);date=d.y+"-"+String(d.m).padStart(2,"0")+"-"+String(d.d).padStart(2,"0");}
    else date=String(date||"").slice(0,10);
-   const value=Number(String(get("hodnota","stav","value","odecet","odecetni stav")??"").replace(/\\s/g,"").replace(",","."));
-   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||!Number.isFinite(value)||value<0)throw new Error("Neplatné datum nebo hodnota na řádku "+(i+2)+".");
+   const value=Number(String(get("hodnota","stav","value","odecet","odecetni stav")??"").replace(/\s/g,"").replace(",","."));
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(value)||value<0)throw new Error("Neplatné datum nebo hodnota na řádku "+(i+2)+".");
    return {id:Date.now()+i,type,date,value};
   });
   if(!parsed.length)throw new Error("V souboru nejsou žádné odečty.");
