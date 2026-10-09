@@ -89,7 +89,38 @@ function add(){
   data.readings.push({id:Date.now(),type:document.getElementById("type").value,date:document.getElementById("date").value,value:Number(v)});save();home();
  };
 }
-function history(){const a=document.getElementById("app");let h="<h2>Historie</h2>";if(!data.readings.length)h+="<div class='card muted'>Zatím nejsou žádné odečty.</div>";data.readings.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(r=>{const m=TYPES[r.type];h+="<div class='card'><b>"+m[0]+" "+m[1]+"</b><div>"+r.date+"</div><div class='value'>"+r.value+" "+m[2]+"</div><button class='btn secondary' data-edit-reading='"+r.id+"'>✏️ Upravit</button></div>";});a.innerHTML=h;a.querySelectorAll("[data-edit-reading]").forEach(b=>b.onclick=()=>editReading(b.dataset.editReading));}
+function history(){
+ const a=document.getElementById("app");
+ const types=Object.keys(TYPES).filter(t=>data.readings.some(r=>r.type===t)||data.enabled.includes(t));
+ const chosen=window._historyType&&types.includes(window._historyType)?window._historyType:(types[0]||data.enabled[0]||"elektrina");
+ const readings=data.readings.filter(r=>r.type===chosen&&r.date&&Number.isFinite(Number(r.value))).slice().sort((x,y)=>String(x.date).localeCompare(String(y.date)));
+ const consumptionById={},monthly={};
+ for(let i=1;i<readings.length;i++){
+  const prev=readings[i-1],cur=readings[i],diff=Number(cur.value)-Number(prev.value);
+  if(diff>=0){consumptionById[String(cur.id)]=diff;const month=String(cur.date).slice(0,7);monthly[month]=(monthly[month]||0)+diff;}
+ }
+ let h="<h2>Historie odečtů</h2><div class='card'><label for='historyType'>Vyber měřidlo</label><select id='historyType'>";
+ types.forEach(t=>h+="<option value='"+t+"' "+(t===chosen?"selected":"")+">"+TYPES[t][0]+" "+TYPES[t][1]+"</option>");
+ h+="</select></div>";
+ if(!readings.length)h+="<div class='card muted'>Pro toto měřidlo zatím nejsou uložené žádné odečty.</div>";
+ else {
+  h+="<div class='card'><b>Měsíční spotřeba</b>";
+  const months=Object.keys(monthly).sort().reverse();
+  if(!months.length)h+="<p class='muted'>Pro výpočet spotřeby je potřeba alespoň dvojice odečtů.</p>";
+  months.forEach(m=>h+="<div class='history-month'><b>"+m+"</b><div class='value'>"+monthly[m].toLocaleString('cs-CZ',{maximumFractionDigits:3})+" "+TYPES[chosen][2]+"</div></div>");
+  h+="</div><h3>Jednotlivé odečty</h3>";
+  readings.slice().reverse().forEach(r=>{
+   const m=TYPES[r.type],has=Object.prototype.hasOwnProperty.call(consumptionById,String(r.id));
+   h+="<div class='card'><b>"+m[0]+" "+m[1]+"</b><div>"+r.date+"</div><div class='value'>"+r.value+" "+m[2]+"</div>";
+   if(has)h+="<div class='muted'>Spotřeba od předchozího odečtu: <b>"+consumptionById[String(r.id)].toLocaleString('cs-CZ',{maximumFractionDigits:3})+" "+m[2]+"</b></div>";
+   else if(readings[0].id!==r.id)h+="<div class='muted'>Spotřebu nelze vypočítat (stav klesl).</div>";
+   h+="<button class='btn secondary' data-edit-reading='"+r.id+"'>✏️ Upravit</button></div>";
+  });
+ }
+ a.innerHTML=h;
+ document.getElementById("historyType").onchange=function(){window._historyType=this.value;history();};
+ a.querySelectorAll("[data-edit-reading]").forEach(b=>b.onclick=()=>editReading(b.dataset.editReading));
+}
 function editReading(id){const r=data.readings.find(x=>String(x.id)===String(id));if(!r)return;const a=document.getElementById("app");let h="<h2>Upravit odečet</h2><div class='card'><label>Měřidlo</label><select id='editType'>";data.enabled.forEach(t=>h+="<option value='"+t+"' "+(t===r.type?"selected":"")+">"+TYPES[t][0]+" "+TYPES[t][1]+"</option>");if(!data.enabled.includes(r.type))h+="<option value='"+r.type+"' selected>"+TYPES[r.type][0]+" "+TYPES[r.type][1]+"</option>";h+="</select><label>Datum odečtu</label><input id='editDate' type='date' value='"+r.date+"'><label>Stav měřidla</label><input id='editValue' inputmode='decimal' value='"+r.value+"'><div class='row'><button class='btn' id='saveEdit'>💾 Uložit změny</button><button class='btn secondary' id='cancelEdit'>Zrušit</button></div></div>";a.innerHTML=h;document.getElementById("saveEdit").onclick=function(){const v=document.getElementById("editValue").value.trim().replace(",","."),d=document.getElementById("editDate").value,t=document.getElementById("editType").value;if(!v||!Number.isFinite(Number(v))||Number(v)<0){alert("Zadej platný nezáporný stav měřidla.");return;}if(!d){alert("Vyber datum odečtu.");return;}r.value=Number(v);r.date=d;r.type=t;save();history();};document.getElementById("cancelEdit").onclick=history;}
 function stats(){
  const a=document.getElementById("app");
