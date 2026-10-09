@@ -5,13 +5,25 @@ function load(){try{const x=JSON.parse(localStorage.getItem("mojeMeridla"));if(x
 function save(){try{localStorage.setItem("mojeMeridla",JSON.stringify(data));}catch(e){}}
 function latest(t){const r=data.readings.filter(x=>x.type===t).sort((a,b)=>String(a.date).localeCompare(String(b.date)));return r.length?r[r.length-1]:null;}
 function previousReading(t,r){return data.readings.filter(x=>x.type===t&&String(x.date)<String(r.date)).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0]||null;}
+function averageMonthlyConsumption(t){
+ const readings=data.readings.filter(x=>x.type===t&&x.date&&Number.isFinite(Number(x.value))).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+ const monthly={};
+ for(let i=1;i<readings.length;i++){
+  const prev=readings[i-1],cur=readings[i],diff=Number(cur.value)-Number(prev.value);
+  if(diff>=0){const month=String(cur.date).slice(0,7);monthly[month]=(monthly[month]||0)+diff;}
+ }
+ const vals=Object.values(monthly);
+ return vals.length?vals.reduce((sum,v)=>sum+v,0)/vals.length:null;
+}
 function home(){
  const a=document.getElementById("app");let h="<h2>Přehled</h2>";
  data.enabled.forEach(t=>{
   const m=TYPES[t],r=latest(t),p=r?previousReading(t,r):null;
   let consumption="";
   if(r&&p){const d=Number(r.value)-Number(p.value);consumption=d>=0?"<div class='muted'>Spotřeba od předchozího odečtu: <b>"+d.toLocaleString('cs-CZ',{maximumFractionDigits:3})+" "+m[2]+"</b></div>":"<div class='muted'>Spotřebu nelze vypočítat (stav klesl).</div>";}
-  h+='<div class="card meter"><span class="icon">'+m[0]+'</span><div><b>'+m[1]+'</b><div class="muted">'+(r?"Poslední odečet: "+r.date:"bez odečtu")+'</div>'+consumption+'</div><span class="value">'+(r?r.value:"—")+" "+m[2]+"</span></div>";
+  const avg=averageMonthlyConsumption(t);
+  const averageText=avg===null?"<div class='muted'>Průměrná měsíční spotřeba: — (zadej alespoň 2 odečty)</div>":"<div class='muted'>Průměrná měsíční spotřeba: <b>"+avg.toLocaleString('cs-CZ',{maximumFractionDigits:2})+" "+m[2]+"/měsíc</b></div>";
+  h+='<div class="card meter"><span class="icon">'+m[0]+'</span><div><b>'+m[1]+'</b><div class="muted">'+(r?"Poslední odečet: "+r.date:"bez odečtu")+'</div>'+consumption+averageText+'</div><span class="value">'+(r?r.value:"—")+" "+m[2]+"</span></div>";
  });
  h+='<div class="card"><b>Nový odečet</b><p class="muted">Vyfoť měřidlo nebo vyber fotografie z galerie.</p><button class="btn" id="newReading">➕ Přidat odečet</button></div>';a.innerHTML=h;document.getElementById("newReading").onclick=add;
 }
