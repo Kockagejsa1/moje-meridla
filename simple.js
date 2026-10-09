@@ -234,4 +234,10 @@ function settings(){
  document.getElementById("importExcel").onclick=()=>document.getElementById("excelFile").click();
  document.getElementById("excelFile").onchange=e=>importExcelFile(e.target.files[0]);
 }
-document.addEventListener("DOMContentLoaded",function(){load();document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){if(b.dataset.page==="home")home();if(b.dataset.page==="add")add();if(b.dataset.page==="history")history();if(b.dataset.page==="stats")stats();if(b.dataset.page==="settings")settings();};});document.getElementById("settings").onclick=settings;home();});
+function applyTheme(theme){
+ const chosen=theme==="dark"?"dark":"light";document.body.dataset.theme=chosen;
+ const b=document.getElementById("themeToggle");if(b){b.textContent=chosen==="dark"?"☀️":"🌙";b.setAttribute("aria-label",chosen==="dark"?"Zapnout světlý režim":"Zapnout tmavý režim");b.title=chosen==="dark"?"Zapnout světlý režim":"Zapnout tmavý režim";}
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=chosen==="dark"?"#101d30":"#1565c0";
+}
+function toggleTheme(){const next=document.body.dataset.theme==="dark"?"light":"dark";try{localStorage.setItem("mojeMeridlaTheme",next);}catch(e){}applyTheme(next);}
+document.addEventListener("DOMContentLoaded",function(){load();let theme="light";try{theme=localStorage.getItem("mojeMeridlaTheme")||"light";}catch(e){}applyTheme(theme);document.getElementById("themeToggle").onclick=toggleTheme;document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){if(b.dataset.page==="home")home();if(b.dataset.page==="add")add();if(b.dataset.page==="history")history();if(b.dataset.page==="stats")stats();if(b.dataset.page==="settings")settings();};});document.getElementById("settings").onclick=settings;home();});

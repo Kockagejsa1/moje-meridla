@@ -7,7 +7,7 @@
   <meta name="description" content="Evidence odečtů elektřiny, plynu a vody včetně měsíčních statistik.">
   <title>MŮJ ODEČET</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <header>
@@ -15,7 +15,7 @@
       <b>MŮJ ODEČET</b>
       <small>Evidence měřidel</small>
     </div>
-    <button id="settings" type="button" aria-label="Nastavení">⚙️</button>
+    <div class="header-actions"><button id="themeToggle" type="button" aria-label="Přepnout vzhled" title="Přepnout světlý/tmavý režim">🌙</button><button id="settings" type="button" aria-label="Nastavení">⚙️</button></div>
   </header>
 
   <main id="app" aria-live="polite">
@@ -35,6 +35,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="simple.js?v=14"></script>
+  <script src="simple.js?v=15"></script>
 </body>
 </html>
