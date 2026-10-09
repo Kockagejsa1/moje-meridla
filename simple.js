@@ -149,5 +149,77 @@ function stats(){
  }else h+="<div class='card'>Pro graf zatím nejsou dostatečné údaje. Zadej alespoň dva odečty stejného měřidla s různými daty.</div>";
  a.innerHTML=h;document.getElementById("statsType").onchange=function(){window._statsType=this.value;stats();};
 }
-function settings(){const a=document.getElementById("app");let h="<h2>Nastavení</h2><div class='card'><b>Zobrazená měřidla</b>";Object.keys(TYPES).forEach(t=>h+="<label><input type='checkbox' data-meter='"+t+"' "+(data.enabled.indexOf(t)>=0?"checked":"")+"> "+TYPES[t][0]+" "+TYPES[t][1]+"</label>");h+="</div><div class='card'><b>Záloha</b><p class='muted'>Odečty a nastavení bez fotografií.</p><button class='btn' id='export'>⬇️ Export JSON</button></div>";a.innerHTML=h;a.querySelectorAll("[data-meter]").forEach(c=>c.onchange=function(){data.enabled=Object.keys(TYPES).filter(t=>a.querySelector("[data-meter='"+t+"']").checked);if(!data.enabled.length){this.checked=true;data.enabled=[this.dataset.meter];}save();home();});document.getElementById("export").onclick=function(){const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const u=URL.createObjectURL(blob),x=document.createElement("a");x.href=u;x.download="moje-odecet-zaloha.json";x.click();URL.revokeObjectURL(u);};}
+function downloadFile(blob,name){const u=URL.createObjectURL(blob),x=document.createElement("a");x.href=u;x.download=name;document.body.appendChild(x);x.click();x.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+function exportJSON(){downloadFile(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),"moje-odecet-zaloha.json");}
+function validBackup(x){
+ if(!x||!Array.isArray(x.readings)||!Array.isArray(x.enabled))return false;
+ return x.readings.every(r=>r&&TYPES[r.type]&&typeof r.date==="string"&&r.date.length>=10&&Number.isFinite(Number(r.value))&&Number(r.value)>=0);
+}
+function applyBackup(x){
+ if(!validBackup(x)){alert("Soubor nemá platný formát zálohy MŮJ ODEČET.");return false;}
+ if(!confirm("Import nahradí všechny současné odečty a nastavení. Před pokračováním doporučuji vytvořit zálohu. Chceš pokračovat?"))return false;
+ data={readings:x.readings.map((r,i)=>({...r,id:r.id??(Date.now()+i),value:Number(r.value)})),enabled:x.enabled.filter(t=>TYPES[t])};
+ if(!data.enabled.length)data.enabled=Object.keys(TYPES);
+ save();alert("Záloha byla úspěšně importována.");home();return true;
+}
+function importJSONFile(file){
+ if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>{try{applyBackup(JSON.parse(reader.result));}catch(e){alert("Soubor JSON se nepodařilo načíst.");}};
+ reader.readAsText(file);
+}
+function exportExcel(){
+ if(!window.XLSX){alert("Knihovna pro Excel se nenačetla. Zkontroluj připojení k internetu a zkus to znovu.");return;}
+ const rows=data.readings.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(r=>({Datum:r.date,Měřidlo:TYPES[r.type]?.[1]||r.type,Typ:r.type,Hodnota:Number(r.value),Jednotka:TYPES[r.type]?.[2]||""}));
+ const meters=data.enabled.map(t=>({Typ:t,Měřidlo:TYPES[t][1],Aktivní:"Ano"}));
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.length?rows:[{Datum:"",Měřidlo:"",Typ:"",Hodnota:"",Jednotka:""}]),"Odečty");
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(meters),"Nastavení");
+ const bytes=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+ downloadFile(new Blob([bytes],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),"moje-odecet-zaloha.xlsx");
+}
+function importExcelFile(file){
+ if(!file)return;
+ if(!window.XLSX){alert("Knihovna pro Excel se nenačetla. Zkontroluj připojení k internetu a zkus to znovu.");return;}
+ const reader=new FileReader();
+ reader.onload=()=>{try{
+  const wb=XLSX.read(reader.result,{type:"array",cellDates:true});
+  const sheet=wb.Sheets["Odečty"]||wb.Sheets[wb.SheetNames[0]];
+  if(!sheet)throw new Error("Chybí list s odečty.");
+  const rows=XLSX.utils.sheet_to_json(sheet,{defval:""});
+  const key=x=>String(x??"").trim().toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
+  const parsed=rows.map((row,i)=>{
+   const keys=Object.keys(row),get=(...names)=>{const k=keys.find(k=>names.includes(key(k)));return k===undefined?undefined:row[k];};
+   let type=get("typ","type","klic meridla","kod meridla");
+   const meter=get("meridlo","meridla","nazev meridla");
+   if(!TYPES[type])type=Object.keys(TYPES).find(t=>key(TYPES[t][1])===key(meter));
+   if(!TYPES[type])throw new Error("Neznámý typ měřidla na řádku "+(i+2)+". Použij sloupec Typ nebo Měřidlo.");
+   let date=get("datum","date");
+   if(date instanceof Date&&!isNaN(date))date=date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
+   else if(typeof date==="number"&&date>20000&&date<80000){const d=XLSX.SSF.parse_date_code(date);date=d.y+"-"+String(d.m).padStart(2,"0")+"-"+String(d.d).padStart(2,"0");}
+   else date=String(date||"").slice(0,10);
+   const value=Number(String(get("hodnota","stav","value","odecet","odecetni stav")??"").replace(/\\s/g,"").replace(",","."));
+   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||!Number.isFinite(value)||value<0)throw new Error("Neplatné datum nebo hodnota na řádku "+(i+2)+".");
+   return {id:Date.now()+i,type,date,value};
+  });
+  if(!parsed.length)throw new Error("V souboru nejsou žádné odečty.");
+  const settingsSheet=wb.Sheets["Nastavení"],enabled=[];
+  if(settingsSheet){XLSX.utils.sheet_to_json(settingsSheet,{defval:""}).forEach(row=>{const type=row.Typ||row.typ;if(TYPES[type]&&!enabled.includes(type))enabled.push(type);});}
+  applyBackup({readings:parsed,enabled:enabled.length?enabled:Object.keys(TYPES)});
+ }catch(e){alert("Import Excelu se nepodařil: "+(e.message||"zkontroluj strukturu souboru."));}};
+ reader.readAsArrayBuffer(file);
+}
+function settings(){
+ const a=document.getElementById("app");let h="<h2>Nastavení</h2><div class='card'><b>Zobrazená měřidla</b>";
+ Object.keys(TYPES).forEach(t=>h+="<label><input type='checkbox' data-meter='"+t+"' "+(data.enabled.indexOf(t)>=0?"checked":"")+"> "+TYPES[t][0]+" "+TYPES[t][1]+"</label>");
+ h+="</div><div class='card'><b>Záloha a obnova</b><p class='muted'>Záloha obsahuje odečty a nastavení měřidel, nikoli fotografie. Import nahradí stávající data.</p><button class='btn' id='exportJSON'>⬇️ Export do JSON</button><button class='btn secondary' id='importJSON'>⬆️ Import z JSON</button><input id='jsonFile' type='file' accept='.json,application/json' hidden><hr><button class='btn' id='exportExcel'>📊 Export do Excelu (.xlsx)</button><button class='btn secondary' id='importExcel'>📥 Import z Excelu (.xlsx)</button><input id='excelFile' type='file' accept='.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel' hidden></div>";
+ a.innerHTML=h;
+ a.querySelectorAll("[data-meter]").forEach(c=>c.onchange=function(){data.enabled=Object.keys(TYPES).filter(t=>a.querySelector("[data-meter='"+t+"']").checked);if(!data.enabled.length){this.checked=true;data.enabled=[this.dataset.meter];}save();settings();});
+ document.getElementById("exportJSON").onclick=exportJSON;
+ document.getElementById("importJSON").onclick=()=>document.getElementById("jsonFile").click();
+ document.getElementById("jsonFile").onchange=e=>importJSONFile(e.target.files[0]);
+ document.getElementById("exportExcel").onclick=exportExcel;
+ document.getElementById("importExcel").onclick=()=>document.getElementById("excelFile").click();
+ document.getElementById("excelFile").onchange=e=>importExcelFile(e.target.files[0]);
+}
 document.addEventListener("DOMContentLoaded",function(){load();document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){if(b.dataset.page==="home")home();if(b.dataset.page==="add")add();if(b.dataset.page==="history")history();if(b.dataset.page==="stats")stats();if(b.dataset.page==="settings")settings();};});document.getElementById("settings").onclick=settings;home();});
