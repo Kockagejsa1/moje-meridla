@@ -90,5 +90,26 @@ function add(){
  };
 }
 function history(){const a=document.getElementById("app");let h="<h2>Historie</h2>";if(!data.readings.length)h+="<div class='card muted'>Zatím nejsou žádné odečty.</div>";data.readings.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(r=>{const m=TYPES[r.type];h+="<div class='card'><b>"+m[0]+" "+m[1]+"</b><div>"+r.date+"</div><div class='value'>"+r.value+" "+m[2]+"</div></div>";});a.innerHTML=h;}
+function stats(){
+ const a=document.getElementById("app");
+ const typeList=data.enabled.filter(t=>TYPES[t]);
+ const chosen=window._statsType&&typeList.includes(window._statsType)?window._statsType:(typeList[0]||"elektrina");
+ const readings=data.readings.filter(r=>r.type===chosen&&r.date&&Number.isFinite(Number(r.value))).slice().sort((x,y)=>String(x.date).localeCompare(String(y.date)));
+ const monthly={};
+ for(let i=1;i<readings.length;i++){const prev=readings[i-1],cur=readings[i],cons=Number(cur.value)-Number(prev.value);if(cons<0)continue;const month=String(cur.date).slice(0,7);monthly[month]=(monthly[month]||0)+cons;}
+ const months=Object.keys(monthly).sort().slice(-12),vals=months.map(m=>monthly[m]),max=Math.max(1,...vals);
+ let h="<h2>Statistiky spotřeby</h2><div class='card'><label for='statsType'>Vyber měřidlo</label><select id='statsType'>";
+ typeList.forEach(t=>h+="<option value='"+t+"' "+(t===chosen?"selected":"")+">"+TYPES[t][0]+" "+TYPES[t][1]+"</option>");
+ h+="</select><p class='muted'>Měsíční spotřeba se počítá z rozdílu po sobě jdoucích odečtů a přiřazuje se k měsíci novějšího odečtu.</p></div>";
+ if(months.length){h+="<div class='card'><b>"+TYPES[chosen][0]+" "+TYPES[chosen][1]+" — měsíční spotřeba</b><div class='bar-chart' role='img' aria-label='Sloupcový graf měsíční spotřeby'>";
+ months.forEach((m,i)=>{const v=monthly[m],prev=i?monthly[months[i-1]]:null;let cmp="";if(prev!==null){if(v>prev)cmp="<div class='muted danger'>▲ "+(((v-prev)/(prev||1))*100).toFixed(0)+" %</div>";else if(v<prev)cmp="<div class='muted ok'>▼ "+(((prev-v)/(prev||1))*100).toFixed(0)+" %</div>";else cmp="<div class='muted'>beze změny</div>";}
+ h+="<div class='bar-col'><b>"+Number(v.toFixed(2))+" "+TYPES[chosen][2]+"</b><div class='bar-track'><div class='bar-fill' style='height:"+Math.max(3,(v/max)*100)+"%'></div></div><span>"+m.slice(5)+"/"+m.slice(0,4)+"</span>"+cmp+"</div>";});
+ h+="</div></div>";const sorted=months.slice().sort((x,y)=>monthly[x]-monthly[y]),lm=months[months.length-1],lv=monthly[lm];
+ h+="<div class='card'><b>Vyhodnocení</b><p>Poslední zaznamenaná měsíční spotřeba: <strong>"+lv.toFixed(2)+" "+TYPES[chosen][2]+"</strong> ("+lm+").</p>";
+ if(months.length>1){const pm=months[months.length-2],pv=monthly[pm],diff=lv-pv,pct=pv?Math.abs(diff/pv*100):0;h+="<p>"+(diff>0?"Spotřeba vzrostla":diff<0?"Spotřeba klesla":"Spotřeba se nezměnila")+" oproti "+pm+(diff!==0?" o "+pct.toFixed(1)+" %":"")+".</p><p>Nejnižší spotřeba: <b>"+sorted[0]+" — "+monthly[sorted[0]].toFixed(2)+" "+TYPES[chosen][2]+"</b>.</p><p>Nejvyšší spotřeba: <b>"+sorted[sorted.length-1]+" — "+monthly[sorted[sorted.length-1]].toFixed(2)+" "+TYPES[chosen][2]+"</b>.</p>";}
+ h+="</div>";
+ }else h+="<div class='card'>Pro graf zatím nejsou dostatečné údaje. Zadej alespoň dva odečty stejného měřidla s různými daty.</div>";
+ a.innerHTML=h;document.getElementById("statsType").onchange=function(){window._statsType=this.value;stats();};
+}
 function settings(){const a=document.getElementById("app");let h="<h2>Nastavení</h2><div class='card'><b>Zobrazená měřidla</b>";Object.keys(TYPES).forEach(t=>h+="<label><input type='checkbox' data-meter='"+t+"' "+(data.enabled.indexOf(t)>=0?"checked":"")+"> "+TYPES[t][0]+" "+TYPES[t][1]+"</label>");h+="</div><div class='card'><b>Záloha</b><p class='muted'>Odečty a nastavení bez fotografií.</p><button class='btn' id='export'>⬇️ Export JSON</button></div>";a.innerHTML=h;a.querySelectorAll("[data-meter]").forEach(c=>c.onchange=function(){data.enabled=Object.keys(TYPES).filter(t=>a.querySelector("[data-meter='"+t+"']").checked);if(!data.enabled.length){this.checked=true;data.enabled=[this.dataset.meter];}save();home();});document.getElementById("export").onclick=function(){const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const u=URL.createObjectURL(blob),x=document.createElement("a");x.href=u;x.download="moje-odecet-zaloha.json";x.click();URL.revokeObjectURL(u);};}
-document.addEventListener("DOMContentLoaded",function(){load();document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){if(b.dataset.page==="home")home();if(b.dataset.page==="add")add();if(b.dataset.page==="history")history();if(b.dataset.page==="settings")settings();};});document.getElementById("settings").onclick=settings;home();});
+document.addEventListener("DOMContentLoaded",function(){load();document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){if(b.dataset.page==="home")home();if(b.dataset.page==="add")add();if(b.dataset.page==="history")history();if(b.dataset.page==="stats")stats();if(b.dataset.page==="settings")settings();};});document.getElementById("settings").onclick=settings;home();});
