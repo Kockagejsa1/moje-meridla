@@ -23,3 +23,7 @@ body[data-theme="dark"] .accent-choice{border-color:#455166}body[data-theme="dar
 
 /* Kompaktnější dlaždice na úvodním přehledu */
 main:has(> h2) .meter{padding:12px 14px;margin:8px 0;border-radius:14px;gap:10px}main:has(> h2) .meter .icon{font-size:28px}main:has(> h2) .meter .value{font-size:20px;font-weight:650}main:has(> h2) .meter>div b{font-size:15px}main:has(> h2) .meter .muted{font-size:12px;line-height:1.35}main:has(> h2) .meter .muted b{font-size:12px}
+
+
+/* Řazení měřidel v nastavení */
+.meter-order-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border,#ddd)}.meter-order-row:last-of-type{border-bottom:0}.meter-order-row label{display:flex;align-items:center;gap:8px;flex:1;margin:0}.meter-order-buttons{display:flex;gap:6px}.order-btn{min-width:38px;min-height:36px;border:1px solid var(--border,#ccc);border-radius:9px;background:var(--card-bg,#fff);color:inherit;font-size:14px}.order-btn:disabled{opacity:.3}
